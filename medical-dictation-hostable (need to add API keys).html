@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medical Dictation</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #0f1c1a 0%, #162420 40%, #1a2a25 100%);
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+    color: #d4e4dc;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+  }
+  .app { max-width: 640px; width: 100%; }
+
+  /* Setup */
+  .setup-card {
+    max-width: 480px; width: 100%; margin: 40px auto 0;
+    background: rgba(22,40,34,0.8); border: 1px solid rgba(74,144,164,0.2);
+    border-radius: 16px; padding: 40px 32px;
+  }
+  .logo-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .logo-icon { font-size: 28px; color: #4a90a4; }
+  .setup-title { font-size: 24px; font-weight: 600; color: #e8f4ec; letter-spacing: -0.5px; }
+  .setup-desc { font-size: 14px; line-height: 1.6; color: #8aac9e; margin-bottom: 28px; }
+  .field-group { margin-bottom: 20px; }
+  .label {
+    font-size: 12px; font-weight: 500; color: #6e9a8a;
+    text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;
+  }
+  .input {
+    width: 100%; padding: 12px 14px; font-size: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    background: rgba(10,20,16,0.6); border: 1px solid rgba(74,144,164,0.25);
+    border-radius: 8px; color: #d4e4dc; outline: none;
+  }
+  .hint { font-size: 12px; color: #5a7e70; margin-top: 8px; }
+  .start-btn {
+    width: 100%; padding: 14px; font-size: 15px; font-weight: 600;
+    background: linear-gradient(135deg, #1a6b54, #27ae60); color: #fff;
+    border: none; border-radius: 10px; cursor: pointer; letter-spacing: 0.3px;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+  .start-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .saved-badge {
+    display: inline-block; font-size: 11px; color: #27ae60;
+    margin-left: 8px; font-weight: 500;
+  }
+
+  /* Header */
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid rgba(74,144,164,0.15);
+  }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .header-icon { font-size: 22px; color: #4a90a4; }
+  .header-title { font-size: 18px; font-weight: 600; color: #e8f4ec; letter-spacing: -0.3px; }
+  .header-right { display: flex; gap: 8px; }
+  .header-btn {
+    background: rgba(74,144,164,0.12); border: 1px solid rgba(74,144,164,0.2);
+    border-radius: 8px; padding: 6px 10px; font-size: 16px; cursor: pointer; color: #8aac9e;
+  }
+  .hotkey-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(74,144,164,0.12); border: 1px solid rgba(74,144,164,0.25);
+    border-radius: 8px; padding: 4px 12px; font-size: 12px; color: #6e9a8a;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .hotkey-badge kbd {
+    background: rgba(74,144,164,0.2); border-radius: 4px;
+    padding: 1px 5px; font-size: 11px; color: #8aac9e;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* Prompt */
+  .prompt-section {
+    background: rgba(22,40,34,0.6); border: 1px solid rgba(74,144,164,0.15);
+    border-radius: 12px; padding: 20px; margin-bottom: 20px;
+  }
+  .prompt-textarea {
+    width: 100%; padding: 12px; font-size: 13px;
+    font-family: 'IBM Plex Mono', monospace; line-height: 1.6;
+    background: rgba(10,20,16,0.5); border: 1px solid rgba(74,144,164,0.2);
+    border-radius: 8px; color: #a8c4b8; resize: vertical; outline: none;
+  }
+  .reset-btn, .clear-keys-btn {
+    margin-top: 10px; padding: 6px 14px; font-size: 12px;
+    background: transparent; border: 1px solid rgba(74,144,164,0.2);
+    border-radius: 6px; color: #6e9a8a; cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+  .clear-keys-btn { border-color: rgba(192,57,43,0.3); color: #e8a49a; margin-left: 8px; }
+
+  /* Record */
+  .record-section { display: flex; flex-direction: column; align-items: center; padding: 32px 0; }
+  .record-btn {
+    display: flex; align-items: center; gap: 12px; padding: 16px 40px;
+    font-size: 16px; font-weight: 600; font-family: 'IBM Plex Sans', sans-serif;
+    color: #fff; border: none; border-radius: 50px; cursor: pointer;
+    letter-spacing: 0.3px; transition: transform 0.15s;
+  }
+  .record-btn.idle { background: linear-gradient(135deg, #1a6b54, #27ae60); }
+  .record-btn.recording { background: linear-gradient(135deg, #c0392b, #e74c3c); animation: pulse 1.5s ease-in-out infinite; }
+  .record-icon { font-size: 20px; }
+  .recording-hint { margin-top: 16px; font-size: 13px; color: #5a7e70; text-align: center; max-width: 360px; line-height: 1.5; }
+
+  /* Processing */
+  .processing-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .spinner {
+    width: 36px; height: 36px; border: 3px solid rgba(74,144,164,0.2);
+    border-top-color: #4a90a4; border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+  .processing-text { font-size: 14px; color: #6e9a8a; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #27ae60; color: #fff; padding: 10px 24px; border-radius: 8px;
+    font-size: 14px; font-weight: 500; opacity: 0; transition: opacity 0.3s;
+    pointer-events: none; z-index: 1000;
+  }
+  .toast.show { opacity: 1; }
+
+  /* Error */
+  .error-box {
+    background: rgba(192,57,43,0.15); border: 1px solid rgba(192,57,43,0.3);
+    border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #e8a49a;
+    margin-bottom: 20px; display: flex; align-items: flex-start;
+  }
+
+  /* Results */
+  .results { display: flex; flex-direction: column; gap: 16px; }
+  .result-card {
+    background: rgba(22,40,34,0.7); border: 1px solid rgba(74,144,164,0.2);
+    border-radius: 12px; overflow: hidden;
+  }
+  .result-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; border-bottom: 1px solid rgba(74,144,164,0.1);
+  }
+  .result-label {
+    font-size: 12px; font-weight: 600; color: #4a90a4;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .copy-btn {
+    padding: 6px 16px; font-size: 13px; font-weight: 500; color: #fff;
+    border: none; border-radius: 6px; cursor: pointer; transition: background 0.2s;
+    font-family: 'IBM Plex Sans', sans-serif; background: #4a90a4;
+  }
+  .copy-btn.copied { background: #27ae60; }
+  .cleaned-output {
+    padding: 16px 20px; font-size: 15px; line-height: 1.7; color: #e0efe6;
+    white-space: pre-wrap;
+  }
+
+  /* Raw */
+  .raw-details {
+    background: rgba(22,40,34,0.4); border: 1px solid rgba(74,144,164,0.1);
+    border-radius: 10px; overflow: hidden;
+  }
+  .raw-details summary { padding: 10px 16px; font-size: 12px; color: #5a7e70; cursor: pointer; }
+  .raw-text {
+    padding: 8px 16px 14px; font-size: 13px; color: #6e9a8a;
+    line-height: 1.6; font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center; font-size: 11px; color: #3a5e4e;
+    margin-top: 32px; padding-top: 16px; border-top: 1px solid rgba(74,144,164,0.08);
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(231,76,60,0.4); }
+    50% { box-shadow: 0 0 0 16px rgba(231,76,60,0); }
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div class="setup-card" id="setupScreen" style="display:none;">
+  <div class="logo-row">
+    <div class="logo-icon">⚕</div>
+    <h1 class="setup-title">Medical Dictation</h1>
+  </div>
+  <p class="setup-desc">
+    Browser-based clinical dictation. Enter your API keys once — they're saved
+    in this browser only and never leave your device.
+  </p>
+  <div class="field-group">
+    <label class="label">Deepgram API Key</label>
+    <input type="password" id="dgKeyInput" class="input" placeholder="Your Deepgram API key">
+    <p class="hint">console.deepgram.com · Uses Nova-3 Medical model</p>
+  </div>
+  <div class="field-group">
+    <label class="label">Anthropic API Key</label>
+    <input type="password" id="anthropicKeyInput" class="input" placeholder="Your Anthropic API key">
+    <p class="hint">console.anthropic.com · Uses Claude Haiku 4.5</p>
+  </div>
+  <button class="start-btn" onclick="saveKeysAndStart()">Save Keys & Start</button>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="mainApp" style="display:none;">
+  <div class="header">
+    <div class="header-left">
+      <span class="header-icon">⚕</span>
+      <span class="header-title">Medical Dictation</span>
+      <span class="hotkey-badge"><kbd>⌘</kbd><kbd>⇧</kbd><kbd>D</kbd></span>
+    </div>
+    <div class="header-right">
+      <button class="header-btn" onclick="togglePrompt()" title="Edit cleanup prompt">⚙</button>
+      <button class="header-btn" onclick="clearKeysAndShowSetup()" title="Change API keys">🔑</button>
+    </div>
+  </div>
+
+  <div class="prompt-section" id="promptSection" style="display:none;">
+    <label class="label">Claude Enhancement Prompt</label>
+    <textarea class="prompt-textarea" id="promptText" rows="5"></textarea>
+    <div>
+      <button class="reset-btn" onclick="resetPrompt()">Reset to default</button>
+      <button class="clear-keys-btn" onclick="clearKeysAndShowSetup()">Change API keys</button>
+    </div>
+  </div>
+
+  <div class="record-section">
+    <div id="processingWrap" class="processing-wrap" style="display:none;">
+      <div class="spinner"></div>
+      <span class="processing-text" id="processingText"></span>
+    </div>
+    <button id="recordBtn" class="record-btn idle" onclick="toggleRecording()" style="display:flex;">
+      <span class="record-icon" id="recordIcon">🎙</span>
+      <span id="recordLabel">Start Recording  (⌘⇧D)</span>
+    </button>
+    <p class="recording-hint" id="recordingHint" style="display:none;">
+      Dictate naturally. Use voice commands: "new paragraph", "bullet point", "next line"
+    </p>
+  </div>
+
+  <div id="errorBox" class="error-box" style="display:none;"></div>
+
+  <div id="results" class="results" style="display:none;">
+    <div class="result-card">
+      <div class="result-header">
+        <span class="result-label">Formatted Output</span>
+        <button class="copy-btn" id="copyBtn" onclick="copyText()">Copy</button>
+      </div>
+      <div class="cleaned-output" id="cleanedOutput"></div>
+    </div>
+    <details class="raw-details">
+      <summary>Raw Deepgram transcript</summary>
+      <p class="raw-text" id="rawOutput"></p>
+    </details>
+  </div>
+
+  <p class="footer">Deepgram Nova-3 Medical → Claude Haiku · ⌘⇧D to toggle · Auto-copies to clipboard</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DEFAULT_PROMPT = `You are a medical transcription formatter. Fix all punctuation, capitalization, and spelling of medical terminology including drug names, diagnoses, procedures, and anatomical terms. Use standard medical abbreviations where appropriate. Interpret spoken commands as formatting: 'next line' or 'new line' = line break, 'new paragraph' = paragraph break, 'bullet' or 'bullet point' = bulleted list item, 'colon' = insert colon, 'period' = insert period, 'comma' = insert comma. Remove the command words from the output. Do not add, remove, or change any clinical content. Output only the corrected text.`;
+
+const STORAGE_KEYS = { dg: 'medDict_dgKey', anthropic: 'medDict_anthropicKey' };
+
+let config = { dgKey: '', anthropicKey: '' };
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+let isProcessing = false;
+let persistentStream = null;
+
+// ===== KEY MANAGEMENT =====
+function loadKeys() {
+  try {
+    config.dgKey = localStorage.getItem(STORAGE_KEYS.dg) || '';
+    config.anthropicKey = localStorage.getItem(STORAGE_KEYS.anthropic) || '';
+  } catch {}
+}
+
+function saveKeys(dg, anthropic) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.dg, dg);
+    localStorage.setItem(STORAGE_KEYS.anthropic, anthropic);
+  } catch {}
+  config.dgKey = dg;
+  config.anthropicKey = anthropic;
+}
+
+function saveKeysAndStart() {
+  const dg = document.getElementById('dgKeyInput').value.trim();
+  const ant = document.getElementById('anthropicKeyInput').value.trim();
+  if (!dg || !ant) { alert('Both API keys are required.'); return; }
+  saveKeys(dg, ant);
+  showMainApp();
+}
+
+function clearKeysAndShowSetup() {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.dg);
+    localStorage.removeItem(STORAGE_KEYS.anthropic);
+  } catch {}
+  config.dgKey = '';
+  config.anthropicKey = '';
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('setupScreen').style.display = 'block';
+  document.getElementById('dgKeyInput').value = '';
+  document.getElementById('anthropicKeyInput').value = '';
+}
+
+function showMainApp() {
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  document.getElementById('promptText').value = DEFAULT_PROMPT;
+  initMic();
+}
+
+// ===== INIT =====
+loadKeys();
+if (config.dgKey && config.anthropicKey) {
+  showMainApp();
+} else {
+  document.getElementById('setupScreen').style.display = 'block';
+}
+
+// ===== MIC (persistent) =====
+async function initMic() {
+  if (persistentStream) return;
+  try {
+    persistentStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000 }
+    });
+    showToast('🎙 Microphone ready');
+  } catch (err) {
+    showError('Microphone access denied. Allow mic access and reload the page.');
+  }
+}
+
+// ===== KEYBOARD SHORTCUT: Cmd+Shift+D =====
+document.addEventListener('keydown', (e) => {
+  if (e.metaKey && e.shiftKey && (e.key === 'd' || e.key === 'D')) {
+    e.preventDefault();
+    if (!isProcessing) toggleRecording();
+  }
+});
+
+// ===== TOAST =====
+function showToast(msg, duration = 2000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ===== PROMPT =====
+function togglePrompt() {
+  const el = document.getElementById('promptSection');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+function resetPrompt() { document.getElementById('promptText').value = DEFAULT_PROMPT; }
+
+// ===== RECORDING =====
+async function toggleRecording() {
+  if (isRecording) stopRecording();
+  else await startRecording();
+}
+
+async function startRecording() {
+  hideError();
+  document.getElementById('results').style.display = 'none';
+  if (!persistentStream) {
+    try {
+      persistentStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000 }
+      });
+    } catch (err) {
+      showError('Microphone access denied. Check browser and macOS permissions, then reload.');
+      return;
+    }
+  }
+  try {
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus' : 'audio/webm';
+    mediaRecorder = new MediaRecorder(persistentStream, { mimeType });
+    audioChunks = [];
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = () => processAudio();
+    mediaRecorder.start(250);
+    isRecording = true;
+    updateRecordUI();
+    showToast('🎙 Recording started');
+  } catch (err) {
+    showError('Recording error: ' + err.message);
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  isRecording = false;
+  updateRecordUI();
+  showToast('⏹ Recording stopped — processing...');
+}
+
+function updateRecordUI() {
+  const btn = document.getElementById('recordBtn');
+  btn.className = isRecording ? 'record-btn recording' : 'record-btn idle';
+  document.getElementById('recordIcon').textContent = isRecording ? '⏹' : '🎙';
+  document.getElementById('recordLabel').textContent = isRecording ? 'Stop Recording  (⌘⇧D)' : 'Start Recording  (⌘⇧D)';
+  document.getElementById('recordingHint').style.display = isRecording ? 'block' : 'none';
+}
+
+// ===== PROCESSING =====
+async function processAudio() {
+  const recordBtn = document.getElementById('recordBtn');
+  const processingWrap = document.getElementById('processingWrap');
+  recordBtn.style.display = 'none';
+  processingWrap.style.display = 'flex';
+  isProcessing = true;
+
+  try {
+    // Step 1: Deepgram Nova-3 Medical
+    setProcessing('Transcribing with Nova-3 Medical...');
+    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+    const dgRes = await fetch(
+      'https://api.deepgram.com/v1/listen?model=nova-3-medical&smart_format=true&punctuate=true',
+      {
+        method: 'POST',
+        headers: { 'Authorization': 'Token ' + config.dgKey, 'Content-Type': 'audio/webm' },
+        body: audioBlob
+      }
+    );
+    if (!dgRes.ok) {
+      const err = await dgRes.json().catch(() => ({}));
+      throw new Error(err?.err_msg || 'Deepgram error: ' + dgRes.status);
+    }
+    const dgData = await dgRes.json();
+    const transcript = dgData?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
+    if (!transcript.trim()) throw new Error('No speech detected. Try again.');
+
+    document.getElementById('rawOutput').textContent = transcript;
+
+    // Step 2: Claude Haiku cleanup
+    setProcessing('Cleaning up with Claude Haiku...');
+    const prompt = document.getElementById('promptText').value;
+    const fullPrompt = prompt + '\n\nTranscript to clean up:\n' + transcript;
+
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': config.anthropicKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2048,
+        messages: [{ role: 'user', content: fullPrompt }]
+      })
+    });
+    if (!claudeRes.ok) {
+      const errText = await claudeRes.text();
+      throw new Error('Claude error: ' + errText);
+    }
+    const claudeData = await claudeRes.json();
+    const cleaned = claudeData?.content?.filter(b => b.type === 'text').map(b => b.text).join('\n') || transcript;
+
+    document.getElementById('cleanedOutput').textContent = cleaned;
+    document.getElementById('results').style.display = 'flex';
+
+    // AUTO-COPY
+    await autoCopy(cleaned);
+
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    isProcessing = false;
+    processingWrap.style.display = 'none';
+    recordBtn.style.display = 'flex';
+  }
+}
+
+// ===== AUTO-COPY =====
+async function autoCopy(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('✓ Copied to clipboard — paste into Epic');
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ Copied';
+    btn.className = 'copy-btn copied';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.className = 'copy-btn'; }, 3000);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✓ Copied to clipboard');
+  }
+}
+
+function copyText() {
+  const text = document.getElementById('cleanedOutput').textContent;
+  autoCopy(text);
+}
+
+// ===== HELPERS =====
+function setProcessing(text) { document.getElementById('processingText').textContent = text; }
+function showError(msg) {
+  const el = document.getElementById('errorBox');
+  el.innerHTML = '<span style="margin-right:8px">⚠</span>' + msg;
+  el.style.display = 'flex';
+}
+function hideError() { document.getElementById('errorBox').style.display = 'none'; }
+</script>
+</body>
+</html>
