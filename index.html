@@ -266,7 +266,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const DEFAULT_PROMPT = `You are a medical transcription formatter. Fix all punctuation, capitalization, and spelling of medical terminology including drug names, diagnoses, procedures, and anatomical terms. Use standard medical abbreviations where appropriate. Interpret spoken commands as formatting: 'next line' or 'new line' = line break, 'new paragraph' = paragraph break, 'bullet' or 'bullet point' = bulleted list item, 'colon' = insert colon, 'period' = insert period, 'comma' = insert comma. Remove the command words from the output. Do not add, remove, or change any clinical content. Output only the corrected text.`;
+const DEFAULT_PROMPT = `Fix all punctuation, capitalization, and spelling of medical terminology including drug names, diagnoses, procedures, and anatomical terms. Use standard medical abbreviations where appropriate. Interpret spoken commands as formatting: 'next line' or 'new line' = line break, 'new paragraph' = paragraph break, 'bullet' or 'bullet point' = bulleted list item, 'colon' = insert colon, 'period' = insert period, 'comma' = insert comma. Remove the command words from the output. Do not add, remove, or change any clinical content. Output only the corrected text.`;
 
 const STORAGE_KEYS = { dg: 'medDict_dgKey', anthropic: 'medDict_anthropicKey' };
 
