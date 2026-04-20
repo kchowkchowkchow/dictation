@@ -169,6 +169,23 @@
     line-height: 1.6; font-family: 'IBM Plex Mono', monospace;
   }
 
+  /* Mode switcher */
+  .mode-switcher {
+    display: flex; gap: 8px; margin-bottom: 24px;
+    background: rgba(10,20,16,0.4); border-radius: 12px; padding: 4px;
+    border: 1px solid rgba(74,144,164,0.15);
+  }
+  .mode-btn {
+    flex: 1; padding: 10px; font-size: 13px; font-weight: 500;
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: transparent; border: none; border-radius: 9px;
+    color: #6e9a8a; cursor: pointer; transition: all 0.2s;
+  }
+  .mode-btn.active {
+    background: rgba(74,144,164,0.2); color: #e8f4ec;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+
   /* Footer */
   .footer {
     text-align: center; font-size: 11px; color: #3a5e4e;
@@ -221,6 +238,11 @@
     </div>
   </div>
 
+  <div class="mode-switcher">
+    <button class="mode-btn active" id="modeMedical" onclick="setMode('medical')">⚕ Medical</button>
+    <button class="mode-btn" id="modeGeneral" onclick="setMode('general')">✏️ General</button>
+  </div>
+
   <div class="prompt-section" id="promptSection" style="display:none;">
     <label class="label">Claude Enhancement Prompt</label>
     <textarea class="prompt-textarea" id="promptText" rows="5"></textarea>
@@ -260,22 +282,36 @@
     </details>
   </div>
 
-  <p class="footer">Deepgram Nova-3 Medical → Claude Haiku · ⌘⇧D to toggle · Auto-copies to clipboard</p>
+  <p class="footer" id="footerText">Deepgram Nova-3 Medical → Claude Haiku · ⌘⇧D to toggle · Auto-copies to clipboard</p>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-const DEFAULT_PROMPT = `Fix all punctuation, capitalization, and spelling of medical terminology including drug names, diagnoses, procedures, and anatomical terms. Use standard medical abbreviations where appropriate. Interpret spoken commands as formatting: 'next line' or 'new line' = line break, 'new paragraph' = paragraph break, 'bullet' or 'bullet point' = bulleted list item, 'colon' = insert colon, 'period' = insert period, 'comma' = insert comma. Remove the command words from the output. Do not add, remove, or change any clinical content. Output only the corrected text.`;
+const DEFAULT_PROMPT = `You are a medical transcription formatter. Fix all punctuation, capitalization, and spelling of medical terminology including drug names, diagnoses, procedures, and anatomical terms. Use standard medical abbreviations where appropriate. Interpret spoken commands as formatting: 'next line' or 'new line' = line break, 'new paragraph' = paragraph break, 'bullet' or 'bullet point' = bulleted list item, 'colon' = insert colon, 'period' = insert period, 'comma' = insert comma. Remove the command words from the output. Do not add, remove, or change any clinical content. Output only the corrected text.`;
+
+const GENERAL_PROMPT = `You are a transcription formatter. Fix punctuation, capitalization, and grammar. Interpret spoken commands as formatting: 'next line' or 'new line' = line break, 'new paragraph' = paragraph break, 'bullet' or 'bullet point' = bulleted list item, 'colon' = insert colon, 'period' = insert period, 'comma' = insert comma. Remove the command words from the output. Output only the corrected text.`;
 
 const STORAGE_KEYS = { dg: 'medDict_dgKey', anthropic: 'medDict_anthropicKey' };
 
 let config = { dgKey: '', anthropicKey: '' };
+let currentMode = 'medical'; // 'medical' or 'general'
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
 let isProcessing = false;
 let persistentStream = null;
+
+// ===== MODE =====
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('modeMedical').className = mode === 'medical' ? 'mode-btn active' : 'mode-btn';
+  document.getElementById('modeGeneral').className = mode === 'general' ? 'mode-btn active' : 'mode-btn';
+  document.getElementById('promptText').value = mode === 'medical' ? DEFAULT_PROMPT : GENERAL_PROMPT;
+  document.getElementById('footerText').textContent = mode === 'medical'
+    ? 'Deepgram Nova-3 Medical → Claude Haiku · ⌘⇧D to toggle · Auto-copies to clipboard'
+    : 'Deepgram Nova-3 General → Claude Haiku · ⌘⇧D to toggle · Auto-copies to clipboard';
+}
 
 // ===== KEY MANAGEMENT =====
 function loadKeys() {
@@ -319,6 +355,7 @@ function showMainApp() {
   document.getElementById('setupScreen').style.display = 'none';
   document.getElementById('mainApp').style.display = 'block';
   document.getElementById('promptText').value = DEFAULT_PROMPT;
+  setMode('medical');
   initMic();
 }
 
@@ -364,7 +401,9 @@ function togglePrompt() {
   const el = document.getElementById('promptSection');
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
-function resetPrompt() { document.getElementById('promptText').value = DEFAULT_PROMPT; }
+function resetPrompt() {
+  document.getElementById('promptText').value = currentMode === 'medical' ? DEFAULT_PROMPT : GENERAL_PROMPT;
+}
 
 // ===== RECORDING =====
 async function toggleRecording() {
@@ -425,11 +464,12 @@ async function processAudio() {
   isProcessing = true;
 
   try {
-    // Step 1: Deepgram Nova-3 Medical
-    setProcessing('Transcribing with Nova-3 Medical...');
+    // Step 1: Deepgram transcription
+    const dgModel = currentMode === 'medical' ? 'nova-3-medical' : 'nova-3';
+    setProcessing(currentMode === 'medical' ? 'Transcribing with Nova-3 Medical...' : 'Transcribing with Nova-3...');
     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
     const dgRes = await fetch(
-      'https://api.deepgram.com/v1/listen?model=nova-3-medical&smart_format=true&punctuate=true',
+      `https://api.deepgram.com/v1/listen?model=${dgModel}&punctuate=true`,
       {
         method: 'POST',
         headers: { 'Authorization': 'Token ' + config.dgKey, 'Content-Type': 'audio/webm' },
